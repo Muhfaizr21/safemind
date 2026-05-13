@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/api_config.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/gradient_button.dart';
 
@@ -15,6 +19,54 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _username = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  Future<void> _login() async {
+    if (_username.text.isEmpty || _password.text.isEmpty) {
+      _showError('Username dan password tidak boleh kosong');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse(ApiConfig.login),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': _username.text,
+          'password': _password.text,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Simpan data ke session
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('username', _username.text);
+        await prefs.setString('email', data['user']['email'] ?? 'Belum diset');
+        await prefs.setString('phone', data['user']['phone'] ?? '+62 812 XXXX XXXX');
+        await prefs.setString('created_at', data['user']['created_at'] ?? '2026-05-13');
+        
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        _showError(data['message'] ?? 'Login gagal');
+      }
+    } catch (e) {
+      _showError('Gagal terhubung ke server. Pastikan backend menyala.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
 
   InputDecoration _buildInputDecoration(String hint, IconData icon,
       {Widget? suffix}) {
@@ -62,9 +114,11 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          SafeArea(
-            child: SingleChildScrollView(
-              child: Column(
+          Positioned.fill(
+            child: SafeArea(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Back button
@@ -205,12 +259,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
 
-                        GradientButton(
-                          label: 'Masuk',
-                          onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/home');
-                          },
-                        ),
+                        _isLoading 
+                        ? const Center(child: CircularProgressIndicator())
+                        : GradientButton(
+                            label: 'Masuk',
+                            onPressed: () => _login(),
+                          ),
 
                         const SizedBox(height: 20),
 
@@ -261,6 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ),
         ],

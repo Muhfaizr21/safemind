@@ -3,7 +3,7 @@ import '../core/app_theme.dart';
 
 class GradientButton extends StatelessWidget {
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final double height;
   final double? width;
   final double borderRadius;
@@ -13,7 +13,7 @@ class GradientButton extends StatelessWidget {
   const GradientButton({
     Key? key,
     required this.label,
-    required this.onPressed,
+    this.onPressed,
     this.height = 54,
     this.width,
     this.borderRadius = 16,

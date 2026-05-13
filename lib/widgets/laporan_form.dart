@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import '../core/app_colors.dart';
 import '../core/app_theme.dart';
+import '../core/api_config.dart';
 
 class LaporanForm extends StatefulWidget {
   @override
@@ -58,21 +62,63 @@ class _LaporanFormState extends State<LaporanForm> {
     }
   }
 
-  void submitForm() {
+  Future<void> submitForm() async {
     if (_formKey.currentState!.validate()) {
       setState(() => isLoading = true);
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Laporan berhasil dikirim"),
-              backgroundColor: AppColors.gradientStart,
-            ),
-          );
+      
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final username = prefs.getString('username') ?? 'anonymous';
+        
+        final response = await http.post(
+          Uri.parse(ApiConfig.reports),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'username': username,
+            'category': jenisLaporan,
+            'location': lokasi.text,
+            'incident_date': selectedDate != null 
+                ? '${selectedDate!.day} ${_monthName(selectedDate!.month)} ${selectedDate!.year}'
+                : '-',
+            'description': deskripsi.text,
+            'is_anonymous': anonim,
+          }),
+        );
+
+        final data = jsonDecode(response.body);
+
+        if (response.statusCode == 200 && data['success'] == true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Laporan berhasil dikirim"),
+                backgroundColor: AppColors.gradientStart,
+              ),
+            );
+            // Reset form
+            lokasi.clear();
+            deskripsi.clear();
+            setState(() {
+              jenisLaporan = null;
+              selectedDate = null;
+              anonim = false;
+            });
+          }
+        } else {
+          _showError(data['message'] ?? 'Gagal mengirim laporan');
         }
-      });
+      } catch (e) {
+        _showError('Gagal terhubung ke server');
+      } finally {
+        if (mounted) setState(() => isLoading = false);
+      }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   InputDecoration _inputDecoration(String hint) {
