@@ -7,6 +7,7 @@ import '../core/app_theme.dart';
 import '../core/api_config.dart';
 import '../widgets/app_logo.dart';
 import '../widgets/gradient_button.dart';
+import 'admin/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -48,9 +49,14 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('email', data['user']['email'] ?? 'Belum diset');
         await prefs.setString('phone', data['user']['phone'] ?? '+62 812 XXXX XXXX');
         await prefs.setString('created_at', data['user']['created_at'] ?? '2026-05-13');
+        await prefs.setString('role', data['user']['role'] ?? 'user');
         
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+          if (data['user']['role'] == 'admin') {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         }
       } else {
         _showError(data['message'] ?? 'Login gagal');

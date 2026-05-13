@@ -16,6 +16,8 @@ import 'screens/riwayat_laporan_screen.dart';
 import 'screens/keamanan_privasi_screen.dart';
 import 'screens/personalisasi_screen.dart';
 import 'screens/bantuan_dukungan_screen.dart';
+import 'screens/active_devices_screen.dart';
+import 'screens/privacy_policy_screen.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
@@ -85,6 +87,8 @@ class MyApp extends StatelessWidget {
             '/keamanan-privasi': (context) => const KeamananPrivasiScreen(),
             '/personalisasi': (context) => const PersonalisasiScreen(),
             '/bantuan-dukungan': (context) => const BantuanDukunganScreen(),
+            '/active-devices': (context) => const ActiveDevicesScreen(),
+            '/privacy-policy': (context) => const PrivacyPolicyScreen(),
           },
         );
       },

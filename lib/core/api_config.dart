@@ -10,4 +10,8 @@ class ApiConfig {
   static const String updateProfile = '$baseUrl/update-profile';
   static const String changePassword = '$baseUrl/change-password';
   static const String sessions = '$baseUrl/sessions';
+  static const String articles = '$baseUrl/articles';
+  static const String videos = '$baseUrl/videos';
+  static const String notifications = '$baseUrl/notifications';
+  static const String psychologists = '$baseUrl/psychologists';
 }

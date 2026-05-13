@@ -115,7 +115,9 @@ class _KeamananPrivasiScreenState extends State<KeamananPrivasiScreen> {
           _buildSettingsTile(Icons.lock_outline, 'Ubah Kata Sandi', onTap: _showChangePasswordDialog),
           _buildSettingsTile(Icons.fingerprint, 'Autentikasi Biometrik', 
             trailing: Switch(value: _biometricEnabled, onChanged: (v) => setState(() => _biometricEnabled = v), activeColor: AppColors.gradientStart)),
-          _buildSettingsTile(Icons.devices, 'Perangkat Aktif', onTap: () {}),
+          _buildSettingsTile(Icons.devices, 'Perangkat Aktif', onTap: () {
+            Navigator.pushNamed(context, '/active-devices');
+          }),
           
           const SizedBox(height: 24),
           
@@ -123,7 +125,9 @@ class _KeamananPrivasiScreenState extends State<KeamananPrivasiScreen> {
           const SizedBox(height: 12),
           _buildSettingsTile(Icons.visibility_off_outlined, 'Sembunyikan Status Online', 
             trailing: Switch(value: _hideOnlineStatus, onChanged: (v) => setState(() => _hideOnlineStatus = v), activeColor: AppColors.gradientStart)),
-          _buildSettingsTile(Icons.policy_outlined, 'Kebijakan Privasi', onTap: () {}),
+          _buildSettingsTile(Icons.policy_outlined, 'Kebijakan Privasi', onTap: () {
+            Navigator.pushNamed(context, '/privacy-policy');
+          }),
         ],
       ),
     );
