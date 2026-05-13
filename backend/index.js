@@ -27,6 +27,20 @@ db.connect((err) => {
     console.log('✅ Terhubung ke database MySQL: ' + process.env.DB_NAME);
     
     // Inisialisasi Tabel Users & Akun Percobaan
+    const createReportsTable = `
+        CREATE TABLE IF NOT EXISTS reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(255),
+            title VARCHAR(255),
+            description TEXT,
+            category VARCHAR(100),
+            anonymous BOOLEAN DEFAULT FALSE,
+            urgency ENUM('Tinggi', 'Sedang', 'Rendah') DEFAULT 'Sedang',
+            location VARCHAR(255) DEFAULT 'Bandung',
+            status ENUM('Terdaftar', 'Dalam Review', 'Menunggu', 'Selesai') DEFAULT 'Terdaftar',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
     const createTableQuery = `
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -245,6 +259,53 @@ app.get('/api/psychologists', (req, res) => {
     });
 });
 
+// Endpoint Statistik Admin
+app.get('/api/admin/stats', (req, res) => {
+    const stats = {};
+    
+    // Hitung Total User
+    db.query('SELECT COUNT(*) as total FROM users WHERE role = "user"', (err, results) => {
+        stats.totalUsers = results[0].total;
+        
+        // Hitung Total Laporan
+        db.query('SELECT COUNT(*) as total FROM reports', (err, results) => {
+            stats.totalReports = results[0].total;
+            
+            // Hitung Psikolog Aktif
+            db.query('SELECT COUNT(*) as total FROM psychologists WHERE is_available = 1', (err, results) => {
+                stats.totalPsychologists = results[0].total;
+                
+                // Hitung Per Kategori untuk Grafik
+                db.query('SELECT category, COUNT(*) as count FROM reports GROUP BY category', (err, results) => {
+                    stats.categories = results;
+                    
+// Endpoint Daftar User (Admin)
+app.get('/api/admin/users', (req, res) => {
+    const query = 'SELECT id, username, email, phone, role, created_at FROM users ORDER BY created_at DESC';
+    db.query(query, (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        res.json({ success: true, data: results });
+    });
+});
+
+// Hitung Pertumbuhan User (30 hari terakhir)
+                    const growthQuery = `
+                        SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as date, COUNT(*) as count 
+                        FROM users 
+                        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                        GROUP BY date 
+                        ORDER BY date ASC
+                    `;
+                    db.query(growthQuery, (err, results) => {
+                        stats.userGrowth = results;
+                        res.json({ success: true, data: stats });
+                    });
+                });
+            });
+        });
+    });
+});
+
 // Fungsi Helper untuk Tambah Notifikasi
 const addNotification = (username, title, message) => {
     const query = 'INSERT INTO notifications (username, title, message) VALUES (?, ?, ?)';
@@ -264,22 +325,30 @@ app.get('/api/sessions/:username', (req, res) => {
     });
 });
 
-// Endpoint Simpan Laporan
+// API untuk Laporan (User)
 app.post('/api/reports', (req, res) => {
-    const { username, category, location, incident_date, description, is_anonymous } = req.body;
-    const query = 'INSERT INTO reports (username, category, location, incident_date, description, is_anonymous) VALUES (?, ?, ?, ?, ?, ?)';
-    
-    db.query(query, [username, category, location, incident_date, description, is_anonymous], (err, results) => {
-        if (err) {
-            console.error('Error saving report:', err);
-            return res.status(500).json({ success: false, message: 'Gagal menyimpan laporan' });
-        }
-        addNotification(username, 'Laporan Terkirim', `Laporan kategori ${category} Anda telah kami terima.`);
-        res.json({ success: true, message: 'Laporan berhasil terkirim' });
+    const { username, title, description, category, anonymous, location, urgency } = req.body;
+    const query = 'INSERT INTO reports (username, title, description, category, anonymous, location, urgency, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+    db.query(query, [username, title, description, category, anonymous || 0, location || 'Bandung', urgency || 'Sedang', 'Terdaftar'], (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        
+        addNotification(username, 'Laporan Dikirim', `Laporan "${title}" telah berhasil kami terima.`);
+        res.json({ success: true, message: 'Laporan berhasil dikirim' });
     });
 });
 
-// Endpoint Ubah Kata Sandi
+// Endpoint Update Status Laporan (Admin)
+app.put('/api/admin/reports/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const query = 'UPDATE reports SET status = ? WHERE id = ?';
+    db.query(query, [status, id], (err, results) => {
+        if (err) return res.status(500).json({ success: false, message: err.message });
+        res.json({ success: true, message: 'Status laporan diperbarui' });
+    });
+});
+
+// Endpoint Statistik Admindi
 app.post('/api/change-password', (req, res) => {
     const { username, oldPassword, newPassword } = req.body;
     

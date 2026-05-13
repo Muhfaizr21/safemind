@@ -14,4 +14,6 @@ class ApiConfig {
   static const String videos = '$baseUrl/videos';
   static const String notifications = '$baseUrl/notifications';
   static const String psychologists = '$baseUrl/psychologists';
+  static const String adminStats = '$baseUrl/admin/stats';
+  static const String adminUsers = '$baseUrl/admin/users';
 }
